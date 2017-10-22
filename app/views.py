@@ -8,7 +8,6 @@ from flask_login import login_user, logout_user, current_user, login_required
 from app.qiniusdk import qiniu_upload_file
 
 
-
 @app.route('/index/images/<int:page>/<int:per_page>/')
 def index_images(page, per_page):
     paginate = Image.query.order_by(db.desc(Image.id)).paginate(page=page, per_page=per_page, error_out=False)
@@ -43,7 +42,7 @@ def index():
 @login_required
 def image(image_id):
     image = Image.query.get(image_id)
-    if image == None:
+    if image is None:
         return redirect('/')
     comments = Comment.query.filter_by(image_id=image_id).order_by(db.desc(Comment.id)).limit(20).all()
     return render_template('pageDetail.html', image=image, comments=comments)
@@ -53,7 +52,7 @@ def image(image_id):
 @login_required
 def profile(user_id):
     user = User.query.get(user_id)
-    if user == None:
+    if user is None:
         return redirect('/')
     paginate = Image.query.filter_by(user_id=user_id).order_by(db.desc(Image.id)).paginate(page=1, per_page=3, error_out=False)
     return render_template('profile.html', user=user, images=paginate.items, has_next=paginate.has_next)
@@ -73,7 +72,7 @@ def user_images(user_id, page, per_page):
 
 
 @app.route('/regloginpage/')
-def regloginpage():
+def reg_login_page():
     msg = ''
     for m in get_flashed_messages(with_categories=False, category_filter=['reglogin']):
         msg = msg + m
@@ -81,7 +80,7 @@ def regloginpage():
 
 
 def redirect_with_msg(target, msg, category):
-    if msg != None:
+    if msg is not None:
         flash(msg, category=category)
     return redirect(target)
 
@@ -95,19 +94,19 @@ def login():
         return redirect_with_msg('/regloginpage/', u'用户名或密码不能为空', 'reglogin')
 
     user = User.query.filter_by(username=username).first()
-    if user == None:
+    if user is None:
         return redirect_with_msg('/regloginpage/', u'用户名不存在', 'reglogin')
 
     m = hashlib.md5()
     user_data = (password + user.salt).encode('utf-8')
     m.update(user_data)
-    if (m.hexdigest() != user.password):
+    if m.hexdigest() != user.password:
         return redirect_with_msg('/regloginpage/', u'密码错误', 'reglogin')
 
     login_user(user)
 
     next = request.values.get('next')
-    if next != None and next.startswith('/'):
+    if next is not None and next.startswith('/'):
         return redirect(next)
 
     return redirect('/')
@@ -124,7 +123,7 @@ def reg():
         return redirect_with_msg('/regloginpage/', u'用户名或密码不能为空', 'reglogin')
 
     user = User.query.filter_by(username=username).first()
-    if user != None:
+    if user is not None:
         return redirect_with_msg('/regloginpage/', u'用户名已经存在', 'reglogin')
 
     # 更多判断
@@ -132,7 +131,7 @@ def reg():
     salt = '.'.join(random.sample('01234567890abcdefghigABCDEFGHI', 10))
     m = hashlib.md5()
     # 加密需要增加encode步骤
-    user_data=(password + salt).encode('utf-8')
+    user_data = (password + salt).encode('utf-8')
     m.update(user_data)
     password = m.hexdigest()
     user = User(username, password, salt)
@@ -167,10 +166,10 @@ def add_comment():
     comment = Comment(content, image_id, current_user.id)
     db.session.add(comment)
     db.session.commit()
-    return json.dumps({"code":0, "id":comment.id,
-                       "content":comment.content,
-                       "username":comment.user.username,
-                       "user_id":comment.user_id})
+    return json.dumps({"code": 0, "id": comment.id,
+                       "content": comment.content,
+                       "username": comment.user.username,
+                       "user_id": comment.user_id})
 
 
 def save_to_qiniu(file, file_name):

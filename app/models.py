@@ -4,8 +4,8 @@ from app import db, login_manager
 from datetime import datetime
 import random
 
+
 class Comment(db.Model):
-    __table_args__ = {'mysql_collate': 'utf8_general_ci'}
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     content = db.Column(db.String(1024))
     image_id = db.Column(db.Integer, db.ForeignKey('image.id'))
@@ -20,6 +20,7 @@ class Comment(db.Model):
 
     def __repr__(self):
         return '<Comment %d %s>' % (self.id, self.content)
+
 
 class Image(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -36,9 +37,9 @@ class Image(db.Model):
     def __repr__(self):
         return '<Image %d %s>' % (self.id, self.url)
 
+
 class User(db.Model):
     # __tablename__ = 'user'
-    __table_args__ = {'mysql_collate': 'utf8_general_ci'}
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     username = db.Column(db.String(80), unique=True)
     password = db.Column(db.String(32))
