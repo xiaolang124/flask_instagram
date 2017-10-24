@@ -4,7 +4,7 @@ from app import app, db
 from app.models import Image, User, Comment
 from flask import render_template, redirect, request, flash, get_flashed_messages, send_from_directory
 import random, hashlib, json, uuid, os
-from flask_login import login_user, logout_user, current_user, login_required
+from flask_login import login_user, logout_user, current_user, login_required, fresh_login_required, login_fresh
 from app.qiniusdk import qiniu_upload_file
 
 
@@ -31,6 +31,7 @@ def index_images(page, per_page):
 
     map['images'] = images
     return json.dumps(map)
+
 
 @app.route('/')
 def index():
@@ -71,10 +72,10 @@ def user_images(user_id, page, per_page):
     return json.dumps(map)
 
 
-@app.route('/regloginpage/')
+@app.route('/register-login/')
 def reg_login_page():
     msg = ''
-    for m in get_flashed_messages(with_categories=False, category_filter=['reglogin']):
+    for m in get_flashed_messages(with_categories=False, category_filter=['register_login']):
         msg = msg + m
     return render_template('login.html', msg=msg, next=request.values.get('next'))
 
@@ -91,19 +92,19 @@ def login():
     password = request.values.get('password').strip()
 
     if username == '' or password == '':
-        return redirect_with_msg('/regloginpage/', u'用户名或密码不能为空', 'reglogin')
+        return redirect_with_msg('/register-login/', u'用户名或密码不能为空', 'register_login')
 
     user = User.query.filter_by(username=username).first()
     if user is None:
-        return redirect_with_msg('/regloginpage/', u'用户名不存在', 'reglogin')
+        return redirect_with_msg('/register-login/', u'用户名不存在', 'register_login')
 
     m = hashlib.md5()
     user_data = (password + user.salt).encode('utf-8')
     m.update(user_data)
     if m.hexdigest() != user.password:
-        return redirect_with_msg('/regloginpage/', u'密码错误', 'reglogin')
+        return redirect_with_msg('/register-login/', u'密码错误', 'register_login')
 
-    login_user(user)
+    login_user(user, remember=True)
 
     next = request.values.get('next')
     if next is not None and next.startswith('/'):
@@ -112,7 +113,7 @@ def login():
     return redirect('/')
 
 
-@app.route('/reg/', methods={'post', 'get'})
+@app.route('/register/', methods={'post', 'get'})
 def reg():
     # request.args
     # request.form
@@ -120,11 +121,11 @@ def reg():
     password = request.values.get('password').strip()
 
     if username == '' or password == '':
-        return redirect_with_msg('/regloginpage/', u'用户名或密码不能为空', 'reglogin')
+        return redirect_with_msg('/register-login/', u'用户名或密码不能为空', 'register_login')
 
     user = User.query.filter_by(username=username).first()
     if user is not None:
-        return redirect_with_msg('/regloginpage/', u'用户名已经存在', 'reglogin')
+        return redirect_with_msg('/register-login/', u'用户名已经存在', 'register_login')
 
     # 更多判断
 
@@ -147,6 +148,23 @@ def reg():
     return redirect('/')
 
 
+@app.route('/re-login/')
+def re_login():
+    msg = ''
+    for m in get_flashed_messages(with_categories=False, category_filter=['register_login']):
+        msg = msg + m
+    return render_template('login.html', msg=msg, next=request.values.get('next'))
+
+
+@app.route('/profile/<int:user_id>/update/')
+@fresh_login_required
+def update(user_id):
+    user = User.query.get(user_id)
+    if user is None:
+        return redirect('/')
+    return '123'
+
+
 @app.route('/logout/')
 def logout():
     logout_user()
@@ -158,7 +176,7 @@ def view_image(image_name):
     return send_from_directory(app.config['UPLOAD_DIR'], image_name)
 
 
-@app.route('/addcomment/', methods={'post'})
+@app.route('/add-comment/', methods={'post'})
 @login_required
 def add_comment():
     image_id = int(request.values['image_id'])
