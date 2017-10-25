@@ -6,7 +6,7 @@ from flask import render_template, redirect, request, flash, get_flashed_message
 import random, hashlib, json, uuid, os
 from flask_login import login_user, logout_user, current_user, login_required, fresh_login_required, login_fresh
 from app.qiniusdk import qiniu_upload_file
-
+from app import verify_user
 
 @app.route('/index/images/<int:page>/<int:per_page>/')
 def index_images(page, per_page):
@@ -122,6 +122,14 @@ def reg():
 
     if username == '' or password == '':
         return redirect_with_msg('/register-login/', u'用户名或密码不能为空', 'register_login')
+
+    # 账号长度小于2的不通过
+    if len(username) < 2:
+        return redirect_with_msg('/register-login/', u'用户名过段', 'register_login')
+
+    # 账户包含特殊字符
+    if verify_user(username) is False:
+        return redirect_with_msg('/register-login/', u'用户名只能有字母、数字', 'register_login')
 
     user = User.query.filter_by(username=username).first()
     if user is not None:
